@@ -217,7 +217,7 @@ const Category = () => {
 
 
         {/* === Recent Transaction === */}
-        <div className="py-4 flex">
+        {/* <div className="py-4 flex">
               <div>
                 <div className="bg-gray-200 rounded-lg">
             <div className="border-b-2 border-b-gray-400">
@@ -312,8 +312,8 @@ const Category = () => {
               <div className="w-full">
                 <TopCategoryChart/>
               </div>
-        </div>
-
+        </div> */}
+        <TopCategoryChart/>
 
       </div>
     </>
@@ -321,4 +321,3 @@ const Category = () => {
 };
 
 export default Category;
-  

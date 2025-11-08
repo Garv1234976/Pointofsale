@@ -1,5 +1,19 @@
 import Expenses from "../b-Expenses/Expenses";
 import Category from "../c-TopCategory/Category"
+import TopCutomerANDCoupons from "../d-TopCustomer-Coupons/TopCustomer-Coupons";
+import BestSellerANDCusBehaviour from "../e-Bestselling-Customer-behaviour/BestsellingProducts-and-customer-behaviour";
+import BusyHoursBarChart from "../f-BusyHours/StoreBusyHours";
+
+
+const customWeekData = [
+  { day: "Mon", busy: 20 },
+  { day: "Tue", busy: 50 },
+  { day: "Wed", busy: 35 },
+  { day: "Thu", busy: 80 },
+  { day: "Fri", busy: 95 },
+  { day: "Sat", busy: 150 },
+  { day: "Sun", busy: 110 },
+];
 const TopHero = () => {
   return (
     <>
@@ -12,7 +26,7 @@ const TopHero = () => {
             <h1 className="text-3xl ">Welcome, Admin</h1>
             <p className="text-sm">
               You have{" "}
-              <span className="text-green-500 font-semibold text-lg">200+</span>{" "}
+              <span className="text-gen-500 font-semibold text-lg text-green-500">200+</span>{" "}
               Orders, <span>Today</span>
             </p>
           </div>
@@ -38,7 +52,7 @@ const TopHero = () => {
                   <span className="text-red-500">Add stock</span>
                 </p>
               </div>
-              <i class="fa-solid fa-xmark text-black"></i>
+              <i className="fa-solid fa-xmark text-black"></i>
             </div>
           </div>
         </div>
@@ -130,6 +144,11 @@ const TopHero = () => {
           </div>
         </div>
 
+      {/* Busy Hours */}
+      <div className="py-4">
+      <BusyHoursBarChart dataset={customWeekData}/>
+      </div>
+
         {/* Center Content */}
         <div>
           <Expenses/>
@@ -139,7 +158,30 @@ const TopHero = () => {
         <div>
           <Category/> 
         </div>
+
+        {/*  */}
+        <div>
+          <TopCutomerANDCoupons/>
+        </div>
+
+        {/* e-Section */}
+        <div>
+          <BestSellerANDCusBehaviour/>
+        </div>
+
+        {/* footer Section */}
+       
       </div>
+
+       <div className="px-4  flex justify-between bg-white text-black p-5">
+         <div className="flex gap-0.5">
+           <p>2025 © <span>SalesPluse</span>.</p>
+          <p>All Right Reserved</p>
+         </div>
+         <div>
+          <p>Powered By <span className="text-blue-400 font-semibold text-xl">SalesPluse</span></p>
+         </div>
+        </div>
     </>
   );
 };
