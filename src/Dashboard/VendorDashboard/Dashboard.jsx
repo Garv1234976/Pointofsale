@@ -39,6 +39,7 @@ import Link from "@mui/material/Link";
 import StarIcon from "@mui/icons-material/Star";
 import CloseIcon from '@mui/icons-material/Close';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import CreateProductTable from "../../UI/Components/ui.VendorDashboard/Components/Product/CreateProduct/a-CreateProduct";
  const ratingData = [
     { stars: 5, percent: 70 },
     { stars: 4, percent: 17 },
@@ -177,9 +178,10 @@ const NAVIGATION = [
     element: <TopHero />,
   },
   {
-    segment: "orders",
-    title: "Orders",
+    segment: "product",
+    title: "Product",
     icon: <ShoppingCartIcon />,
+    element: <CreateProductTable/>
   },
   {
     kind: "divider",
@@ -550,6 +552,45 @@ function DashboardLayoutBasic() {
     return () => clearTimeout(timer);
   }, []);
 
+
+  /** Router cases */
+  const renderPage = () => {
+  switch (router.pathname) {
+    case "/dashboard":
+      return <TopHero />;
+
+    case "/product":
+      return <CreateProductTable />;
+
+    case "/reports/sales":
+      return (
+        <Typography variant="h4" sx={{ mt: 3 }}>
+          Sales Reports Coming Soon...
+        </Typography>
+      );
+
+    case "/reports/traffic":
+      return (
+        <Typography variant="h4" sx={{ mt: 3 }}>
+          Traffic Analytics Coming Soon...
+        </Typography>
+      );
+
+    case "/integrations":
+      return (
+        <Typography variant="h4" sx={{ mt: 3 }}>
+          Integrations Section
+        </Typography>
+      );
+
+    default:
+      return (
+        <Typography variant="h5" sx={{ mt: 3 }}>
+          Page not found: {router.pathname}
+        </Typography>
+      );
+  }
+};
   return (
     <DemoProvider>
       {loading ? (
@@ -576,23 +617,7 @@ function DashboardLayoutBasic() {
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {router.pathname === "/dashboard" ? (
-                  <TopHero />
-                ) : (
-                  <Box
-                    sx={{
-                      py: 4,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography variant="h5" sx={{ mb: 2 }}>
-                      Page content for {router.pathname}
-                    </Typography>
-                  </Box>
-                )}
+                {renderPage()}
               </motion.div>
             </AnimatePresence>
           </DashboardLayout>

@@ -1,34 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Poster from "/pos.png";
 import { useNavigate } from "react-router-dom";
-
+import { useSnackbar } from "../../Utils/SnackBar/Message";
 // Api router
 import api from "../../Services/SalesPulse-backend";
 export default function VendorForm() {
+  const { showSuccess, showError, SnackbarComponent } = useSnackbar();
+
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  // const [formData, setFormData] = useState({
-  //   fullname: "",
-  //   email: "",
-  //   phone: "",
-  //   password: "",
-  //   confirmPassword: "",
-  //   storeName: "",
-  //   storeCategory: "",
-  //   storeDescription: "",
-  //   storeAddress: "",
-  //   city: "",
-  //   state: "",
-  //   pincode: "",
-  //   businessRegNumber: "",
-  //   gstId: "",
-  //   businessLicense: null,
-  //   idProof: null,
-  // });
-
-  const [error, setError] = useState("");
-
   const [formData, setFormData] = useState({
     email: "",
     phoneNumber: "",
@@ -37,8 +18,29 @@ export default function VendorForm() {
     fullName: "",
   });
 
+  const [storeData, setStoreData] = useState({
+    storeName: "",
+    storeCategory: "",
+    companyName: "",
+    gstNumber: "",
+    vendorId: "6911be427ee3036c28901e93",
+
+    storeLogo: null,
+
+    storeAddress: [
+      {
+        localArea: "",
+        city: "",
+        state: "",
+        pincode: "",
+      },
+    ],
+  });
+
   const [profileImg, setProfileImg] = useState(null);
   const [previewImg, setPreviewImg] = useState(null);
+
+  const [storeLogoPreview, setStoreLogoPreview] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -55,22 +57,50 @@ export default function VendorForm() {
     }
   };
 
+  const handleStoreChange = (e) => {
+    setStoreData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleAddressChange = (e, index) => {
+    const { name, value } = e.target;
+    const updatedAddress = [...storeData.storeAddress];
+    updatedAddress[index][name] = value;
+
+    setStoreData((prev) => ({
+      ...prev,
+      storeAddress: updatedAddress,
+    }));
+  };
+
+  const handleStoreLogo = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setStoreData((prev) => ({
+        ...prev,
+        storeLogo: file,
+      }));
+      const imageUrl = URL.createObjectURL(file);
+      setStoreLogoPreview(imageUrl);
+    }
+  };
+
   const nextStep = () => setStep((prev) => prev + 1);
   const prevStep = () => setStep((prev) => prev - 1);
+
+  useEffect(() => {
+    const completed = localStorage.getItem("vendorProfileCompleted") === "true";
+
+    if (completed) {
+      setStep(2);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.email ||
-      !formData.phoneNumber ||
-      !formData.password ||
-      !formData.userName ||
-      !formData.fullName
-    ) {
-      setError("All required fields must be filled");
-      return;
-    }
     const data = new FormData();
 
     data.append("email", formData.email);
@@ -86,10 +116,54 @@ export default function VendorForm() {
     try {
       const res = await api.post("/api/vendor/createVendorProfile", data, {
         headers: { "Content-Type": "multipart/form-data" },
+        skipCsrf: true,
       });
+      // window.location.reload();
+      console.log("SUCCESS:", res);
 
-      console.log("SUCCESS:", res.data);
+      if (res.status === 201) {
+        console.log(res);
+        showSuccess(res.data?.message);
+        localStorage.setItem("vendorProfileCompleted", "true");
+        nextStep();
+      }
     } catch (err) {
+      console.log(err);
+      showError(err.response?.data?.message);
+      console.error("ERROR:", err.response?.data);
+    }
+  };
+
+  const handleStoreSubmit = async (e) => {
+    e.preventDefault();
+
+    const data = new FormData();
+
+    data.append("storeName", storeData.storeName);
+    data.append("storeCategory", storeData.storeCategory);
+    data.append("companyName", storeData.companyName);
+    data.append("gstNumber", storeData.gstNumber);
+    data.append("vendorId", storeData.vendorId);
+    data.append("storeLogo", storeData.storeLogo);
+    data.append("storeAddress", JSON.stringify(storeData.storeAddress));
+    try {
+      const res = await api.post("/api/vendorStore/createVendorStore", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("success", res);
+
+      if (res.status === 201) {
+        console.log(res);
+        showSuccess(res?.data?.message);
+        
+        setTimeout(() => {
+          navigate('/vendordashboard')
+        }, 2500);
+
+      }
+    } catch (err) {
+      console.log(err);
+      showError(err.response?.data?.message);
       console.error("ERROR:", err.response?.data);
     }
   };
@@ -109,7 +183,7 @@ export default function VendorForm() {
         <div className="fixed h-[4rem] bg-[#07575b] w-full px-10 py-2">
           <div>
             <div className="text-3xl font-bold text-left mb-2 text-white">
-              <h2 className=" ">Vendor Registration_</h2>
+              <h2 className="">Vendor Registration_</h2>
             </div>
             <hr className="border-b-2 w-20 text-gray-400" />
           </div>
@@ -126,7 +200,7 @@ export default function VendorForm() {
               className="py-2"
               style={{ marginTop: "90px", paddingInline: "2.5rem" }}
             >
-              <h3 className="text-2xl py-5 ">Basic Information</h3>
+              <h3 className="text-2xl py-5">Basic Information</h3>
               <form onSubmit={handleSubmit} encType="multipart/form-data">
                 <div>
                   {/* this is Vendor Profile picture  */}
@@ -274,14 +348,6 @@ export default function VendorForm() {
                   </button>
                 </div>
               </form>
-
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <input name="fullname" value={formData.fullname} onChange={handleChange} placeholder="Full Name" className="input" />
-                <input name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className="input" />
-                <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" className="input" />
-                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" className="input" />
-                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm Password" className="input" />
-              </div> */}
             </motion.div>
           )}
 
@@ -294,122 +360,12 @@ export default function VendorForm() {
               exit="exit"
               transition={{ duration: 0.1 }}
               //  style={{marginTop: '100px'}}
-              style={{ marginTop: "65px", paddingInline: "2.5rem" }}
+              style={{ marginTop: "100px", paddingInline: "2.5rem" }}
             >
-              <h3 className="text-base font-semibold mt-5 mb-3 text-gray-700 flex items-center gap-2">
-                Store Details
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="relative">
-                  <input
-                    name="storeName"
-                    value={formData.storeName}
-                    onChange={handleChange}
-                    placeholder="Store Name"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    name="storeCategory"
-                    value={formData.storeCategory}
-                    onChange={handleChange}
-                    placeholder="Store Category"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-
-                <div className="relative md:col-span-2">
-                  <textarea
-                    name="storeDescription"
-                    value={formData.storeDescription}
-                    onChange={handleChange}
-                    placeholder="Store Description"
-                    className="input w-full"
-                  />
-                </div>
-
-                <div className="relative">
-                  <input
-                    name="storeAddress"
-                    value={formData.storeAddress}
-                    onChange={handleChange}
-                    placeholder="Store Address"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="City"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    placeholder="State/Region"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    placeholder="Pincode / Zip Code"
-                    className="input w-full"
-                  />
-                  <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                    *
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center mt-6">
-                <div className="flex  gap-0.5">
-                  <p className="font-semibold text-gray-400">
-                    Already have an account?
-                  </p>
-                  <a
-                    href="#"
-                    className="capitalize text-blue-400 font-semibold"
-                  >
-                    Sign In
-                  </a>
-                </div>
-                <button onClick={nextStep} className="btn-primary">
-                  Next
-                </button>
-              </div>
-              <div class="text-gray-800  ">
-                <div class="flex items-start gap-3">
-                  <div>
-                    <p class="mt-1 text-sm leading-relaxed underline font-semibold">
+              <div className="text-gray-800  ">
+                <div className="flex items-start gap-3">
+                  <div className=" bg-gray-200 px-3 py-1 rounded">
+                    <p className="mt-1 text-sm leading-relaxed underline font-semibold">
                       <span className="font-bold text-red-500">*Remember </span>
                       Please ensure all your business verification details and
                       documents are accurate and complete. Once you submit the
@@ -418,15 +374,15 @@ export default function VendorForm() {
                   </div>
                 </div>
 
-                <div class="mt-4 flex items-start gap-3">
-                  <p class="text-sm font-semibold">
+                <div className="mt-4 flex items-start gap-3">
+                  <p className="text-sm font-semibold">
                     Verification Time:{" "}
-                    <span class="font-medium">Within 4 hours</span>, our team
-                    will verify your business information.
+                    <span className="font-medium">Within 4 hours</span>, our
+                    team will verify your business information.
                   </p>
                 </div>
 
-                <div class="mt-9 justify-self-center flex items-start gap-3">
+                {/* <div className="mt-9 justify-self-center flex items-start gap-3">
                   <div className="bg-gray-200 p-1 rounded-md">
                     <h4 class="text-sm font-semibold">After approval</h4>
                     <ul class="mt-2 space-y-2 text-sm leading-snug list-inside">
@@ -457,174 +413,160 @@ export default function VendorForm() {
                       — POS Admin Team
                     </p>
                   </div>
-                </div>
+                </div> */}
               </div>
-
-              <h3 className="text-lg font-semibold mb-4">
-                Business Verification
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <input
-                  name="businessRegNumber"
-                  value={formData.businessRegNumber}
-                  onChange={handleChange}
-                  placeholder="Business Registration Number"
-                  className="input"
-                />
-                <input
-                  name="gstId"
-                  value={formData.gstId}
-                  onChange={handleChange}
-                  placeholder="GST / Tax ID"
-                  className="input"
-                />
-                <input
-                  type="file"
-                  name="businessLicense"
-                  onChange={handleChange}
-                  className="input md:col-span-2"
-                />
-                <input
-                  type="file"
-                  name="idProof"
-                  onChange={handleChange}
-                  className="input md:col-span-2"
-                />
-              </div>
-
-              <div className="flex justify-between">
-                <button onClick={prevStep} className="btn-secondary">
-                  Back
-                </button>
-                <button onClick={nextStep} className="btn-primary">
-                  Preview
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div
-              key="preview"
-              variants={slideVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.1 }}
-              style={{ marginTop: "70px", paddingInline: "2.5rem" }}
-            >
-              <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">
-                Review Your Information
+              <h3 className="text-base font-semibold mt-5 mb-3 text-gray-700 flex items-center gap-2">
+                Store Details
               </h3>
 
-              <div className="bg-gray-50 rounded-lg p-6 shadow-inner space-y-6">
-                {/* Basic Info */}
-                <div>
-                  <h4 className="text-base font-semibold text-gray-700 mb-2">
-                    Basic Information
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                    <p>
-                      <strong>Full Name:</strong> {formData.fullname || "-"}
-                    </p>
-                    <p>
-                      <strong>Email:</strong> {formData.email || "-"}
-                    </p>
-                    <p>
-                      <strong>Phone:</strong> {formData.phone || "-"}
-                    </p>
+              <form onSubmit={handleStoreSubmit} encType="multipart/form-data">
+                {/* Store Logo */}
+                <div className="">
+                  {storeLogoPreview && (
+                    <div className="mt-3 flex justify-center">
+                      <img
+                        src={storeLogoPreview}
+                        alt="Store Logo Preview"
+                        className="w-32 h-32 rounded-full object-cover shadow-md border"
+                      />
+                    </div>
+                  )}
+                  <label className="text-gray-700 font-semibold">
+                    Store Logo
+                  </label>
+
+                  <input
+                    type="file"
+                    name="storeLogo"
+                    accept="image/*"
+                    onChange={handleStoreLogo}
+                    className="input w-full mt-1 mb-4"
+                  />
+                </div>
+                <div className="grid   md:grid-cols-2 gap-4">
+                  {/* Store Name */}
+                  <div className="">
+                    <input
+                      name="storeName"
+                      value={storeData.storeName}
+                      onChange={handleStoreChange}
+                      placeholder="Store Name"
+                      className="input w-full"
+                    />
+                    <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
+                      *
+                    </span>
+                  </div>
+
+                  {/* Store Category */}
+                  <div className="">
+                    <select
+                      name="storeCategory"
+                      value={storeData.storeCategory}
+                      onChange={handleStoreChange}
+                      className="input w-full"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="grocery">Grocery</option>
+                      <option value="electronics">Electronics</option>
+                      <option value="fashion">Fashion</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="pharmacy">Pharmacy</option>
+                      <option value="hardware">Hardware</option>
+                      <option value="books">Books</option>
+                      <option value="cosmetics">Cosmetics</option>
+                      <option value="others">Others</option>
+                    </select>
+                    {/* <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">*</span> */}
+                  </div>
+
+                  {/* Company Name */}
+                  <div className="">
+                    <input
+                      name="companyName"
+                      value={storeData.companyName}
+                      onChange={handleStoreChange}
+                      placeholder="Company Name / Business Name"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  {/* GST Number */}
+                  <div className="">
+                    <input
+                      name="gstNumber"
+                      value={storeData.gstNumber}
+                      onChange={handleStoreChange}
+                      placeholder="GST Number"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  {/* ADDRESS */}
+                  <div className="md:col-span-2">
+                    <h4 className="text-gray-700 font-semibold mt-3 mb-1">
+                      Store Address
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input
+                        name="localArea"
+                        value={storeData.storeAddress[0].localArea}
+                        onChange={(e) => handleAddressChange(e, 0)}
+                        placeholder="Local Area"
+                        className="input w-full"
+                      />
+
+                      <input
+                        name="city"
+                        value={storeData.storeAddress[0].city}
+                        onChange={(e) => handleAddressChange(e, 0)}
+                        placeholder="City"
+                        className="input w-full"
+                      />
+
+                      <input
+                        name="state"
+                        value={storeData.storeAddress[0].state}
+                        onChange={(e) => handleAddressChange(e, 0)}
+                        placeholder="State"
+                        className="input w-full"
+                      />
+
+                      <input
+                        name="pincode"
+                        value={storeData.storeAddress[0].pincode}
+                        onChange={(e) => handleAddressChange(e, 0)}
+                        placeholder="Pincode"
+                        className="input w-full"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Store Details */}
-                <div>
-                  <h4 className="text-base font-semibold text-gray-700 mb-2">
-                    Store Details
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                    <p>
-                      <strong>Store Name:</strong> {formData.storeName || "-"}
-                    </p>
-                    <p>
-                      <strong>Category:</strong> {formData.storeCategory || "-"}
-                    </p>
-                    <p className="sm:col-span-2">
-                      <strong>Description:</strong>{" "}
-                      {formData.storeDescription || "-"}
-                    </p>
-                    <p>
-                      <strong>Address:</strong> {formData.storeAddress || "-"}
-                    </p>
-                    <p>
-                      <strong>City:</strong> {formData.city || "-"}
-                    </p>
-                    <p>
-                      <strong>State/Region:</strong> {formData.state || "-"}
-                    </p>
-                    <p>
-                      <strong>Pincode:</strong> {formData.pincode || "-"}
-                    </p>
-                  </div>
+                {/* Submit Buttons */}
+                <div className="flex justify-end mt-6">
+                  {/* <button
+                    type="button"
+                    onClick={prevStep}
+                    className="btn-secondary"
+                  >
+                    Back
+                  </button> */}
+
+                  <button
+                    type="submit"
+                    className="bg-[#07575b] hover:bg-gray-300 hover:text-black px-10 py-2 text-white font-semibold text-xl rounded cursor-pointer"
+                  >
+                    Register
+                  </button>
                 </div>
-
-                {/* Business Verification */}
-                <div>
-                  <h4 className="text-base font-semibold text-gray-700 mb-2">
-                    Business Verification
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                    <p>
-                      <strong>Business Reg. No:</strong>{" "}
-                      {formData.businessRegNumber || "-"}
-                    </p>
-                    <p>
-                      <strong>GST / Tax ID:</strong> {formData.gstId || "-"}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {formData.businessLicense && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">
-                          Business License
-                        </p>
-                        <img
-                          src={URL.createObjectURL(formData.businessLicense)}
-                          alt="Business License"
-                          className="w-full h-38 object-cover rounded-lg border"
-                        />
-                      </div>
-                    )}
-
-                    {formData.idProof && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">
-                          ID Proof
-                        </p>
-                        <img
-                          src={URL.createObjectURL(formData.idProof)}
-                          alt="ID Proof"
-                          className="w-full h-38 object-cover rounded-lg border"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between mt-8">
-                <button onClick={prevStep} className="btn-secondary">
-                  Back
-                </button>
-                <button onClick={handleSubmit} className="btn-primary">
-                  Submit
-                </button>
-              </div>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      {error && <p className="text-red-600 font-semibold text-lg">{error}</p>}
+      {SnackbarComponent}
     </div>
   );
 }
