@@ -16,6 +16,7 @@ import DefaultImage from "/default.png";
 import { FormControl, InputLabel, NativeSelect } from "@mui/material";
 import api from "../../../../../../Services/SalesPulse-backend";
 import { useSnackbar } from "../../../../../../Utils/SnackBar/Message";
+import CustomSnackbar from "../../../../../../Utils/SnackBar/Product-Snackbar";
 
 function ImportFromCsvORExcel({ onFileSelect }) {
   const [importType, setImportType] = useState("excel");
@@ -71,7 +72,7 @@ function ImportFromCsvORExcel({ onFileSelect }) {
 
 export default function VendorProductTable() {
   const { showSuccess, showError, SnackbarComponent } = useSnackbar();
-
+  const [fileType, setFileType] = useState("");
   const emptyRow = {
     vendorId: "",
     mrp: "",
@@ -88,7 +89,8 @@ export default function VendorProductTable() {
   };
 
   const [rows, setRows] = useState([emptyRow]);
-
+  const [snackbarData, setSnackbarData] = useState(null);
+  const [openSnackbar, setOpenSnackbar] = useState(true);
   //   console.log(rows)
   const updateRow = (index, field, value) => {
     const updated = [...rows];
@@ -96,7 +98,13 @@ export default function VendorProductTable() {
     setRows(updated);
   };
 
+  const MAX_ROWS = 10;
+
   const addRow = (index) => {
+    if (rows.length >= MAX_ROWS) {
+      showError(`You can only Add up to ${MAX_ROWS} products at a time.`);
+      return;
+    }
     const updated = [...rows];
     updated.splice(index + 1, 0, { ...emptyRow });
     setRows(updated);
@@ -152,53 +160,63 @@ export default function VendorProductTable() {
     }
   };
 
-
   const handleImport = async (type, file) => {
-  if (!file) {
-    showError("Please select a file");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("vendorId", "6911be427ee3036c28901e93"); // ✅ your vendorId
-  formData.append(type === "csv" ? "csvFile" : "excelFile", file);
-
-  try {
-    const endpoint =
-      type === "csv"
-        ? "/api/csvParser/uploadCsv"
-        : "/api/excelParser/uploadExcel";
-
-    const res = await api.post(endpoint, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    console.log("Import Result:", res.data);
-
-    if (res.data.failedCount > 0) {
-      showError(`❌ ${res.data.failedCount} rows failed. Check console.`);
-    } else {
-      showSuccess(`✅ Imported ${res.data.insertedCount} products successfully`);
+    if (!file) {
+      showError("Please select a file");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    showError(err.response?.data?.message || "Import failed");
-  }
-};
 
+    const formData = new FormData();
+    formData.append("vendorId", "6911be427ee3036c28901e93"); //  your vendorId
+    formData.append(type === "csv" ? "csvFile" : "excelFile", file);
+
+    try {
+      const endpoint =
+        type === "csv"
+          ? "/api/csvParser/uploadCsv"
+          : "/api/excelParser/uploadExcel";
+
+      const res = await api.post(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      console.log("Import Result:", res.data);
+
+      // if (res.data.errors.length > 0) {
+
+      // } else {
+      //   showSuccess(
+      //     `✅ Imported ${res.data.insertedCount} products successfully`
+      //   );
+      // }
+      setSnackbarData({
+        insertedCount: res.data.insertedCount,
+        failedCount: res.data.failedCount,
+        errors: res.data.errors,
+      });
+      setFileType(type);
+      setOpenSnackbar(true);
+    } catch (err) {
+      console.error(err);
+      showError(err.response?.data?.message || "Import failed");
+    }
+  };
 
   return (
     <div className="p-4 space-y-6">
       <div>
-        <ImportFromCsvORExcel onFileSelect={handleImport}/>
+        <ImportFromCsvORExcel onFileSelect={handleImport} />
       </div>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell />
-              <TableCell sx={{ width: 300 }}>Image</TableCell>
-              <TableCell>Product Name</TableCell>
+              <TableCell sx={{ width: 300 }} align="center">
+                Image
+              </TableCell>
+              <TableCell align="center">Product Name</TableCell>
               <TableCell align="center">MRP</TableCell>
               <TableCell align="center">Discount</TableCell>
               <TableCell align="center">Landing</TableCell>
@@ -218,25 +236,75 @@ export default function VendorProductTable() {
                 index={i}
                 updateRow={updateRow}
                 addRow={addRow}
+                rowsLength={rows.length}
               />
             ))}
           </TableBody>
         </Table>
-        <button
-          onClick={handleBulkSubmit}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500"
-        >
-          Submit All Products
-        </button>
+
         {SnackbarComponent}
+        <CustomSnackbar
+          open={openSnackbar}
+          onClose={() => setOpenSnackbar(false)}
+          data={snackbarData}
+          fileType={fileType}
+        />
       </TableContainer>
+      <button
+        onClick={handleBulkSubmit}
+        className="absolute bottom-3 right-10 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500"
+      >
+        Submit All Products
+      </button>
     </div>
   );
 }
 
-function EditableRow({ row, index, updateRow, addRow }) {
+function EditableRow({ row, index, updateRow, addRow, rowsLength }) {
   const [open, setOpen] = useState(false);
   const imgSrc = row.image ? URL.createObjectURL(row.image) : DefaultImage;
+  const { showSuccess, showError, SnackbarComponent } = useSnackbar();
+  const MAX_ROWS = 10;
+
+  const handleKeyDown = (e, index, currentField) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      const fieldsOrder = [
+        "productName",
+        "mrp",
+        "discountPrice",
+        "landingPrice",
+        "inStock",
+        "sku",
+        "unitType",
+        "weightUnit",
+        "expiredAt",
+      ];
+
+      const currentIndex = fieldsOrder.indexOf(currentField);
+
+      if (currentIndex !== -1 && currentIndex < fieldsOrder.length - 1) {
+        const nextField = fieldsOrder[currentIndex + 1];
+        const nextInput = document.querySelector(
+          `[data-row="${index}"][data-field="${nextField}"]`
+        );
+        if (nextInput) nextInput.focus();
+      } else {
+        // Last field in the row
+        if (index < MAX_ROWS - 1 && rowsLength.length < MAX_ROWS) {
+          // Add new row automatically
+          addRow(index);
+          setTimeout(() => {
+            const firstInput = document.querySelector(
+              `[data-row="${index + 1}"][data-field="productName"]`
+            );
+            if (firstInput) firstInput.focus();
+          }, 50);
+        }
+      }
+    }
+  };
 
   return (
     <>
@@ -257,7 +325,50 @@ function EditableRow({ row, index, updateRow, addRow }) {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => updateRow(index, "image", e.target.files[0])}
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const allowedTypes = [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp",
+                  "image/svg+xml",
+                ];
+                const maxSize = 5 * 1024 * 1024; // 5 MB
+
+                // ✅ Type check
+                if (!allowedTypes.includes(file.type)) {
+                  showError(
+                    <div className="bg-red-50 border-l-4 border-red-500 p-2 rounded text-red-800 shadow-sm text-sm">
+                      <p className="font-bold text-red-600">
+                        Invalid File Type
+                      </p>
+                      <p>Only JPG, PNG, WEBP, or SVG files are allowed.</p>
+                    </div>
+                  );
+                  e.target.value = ""; // Reset file input
+                  return;
+                }
+
+                // ✅ Size check
+                if (file.size > maxSize) {
+                  showError(
+                    <div className="bg-red-50 border-l-4 border-red-500 p-2 rounded text-red-800 shadow-sm text-sm">
+                      <p className="font-bold text-red-600">File Too Large</p>
+                      <p>
+                        {file.name} is {(file.size / (1024 * 1024)).toFixed(2)}{" "}
+                        MB. Max allowed size is 5 MB.
+                      </p>
+                    </div>
+                  );
+                  e.target.value = ""; // Reset file input
+                  return;
+                }
+
+                // ✅ Passed validation — update the state
+                updateRow(index, "image", file);
+              }}
               className="border p-1 rounded w-full"
             />
           </div>
@@ -267,6 +378,9 @@ function EditableRow({ row, index, updateRow, addRow }) {
           <input
             value={row.productName}
             onChange={(e) => updateRow(index, "productName", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "productName")}
+            data-row={index}
+            data-field="productName"
             className="border p-1 rounded w-full"
           />
         </TableCell>
@@ -275,6 +389,9 @@ function EditableRow({ row, index, updateRow, addRow }) {
           <input
             value={row.mrp}
             onChange={(e) => updateRow(index, "mrp", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "mrp")}
+            data-row={index}
+            data-field="mrp"
             className="border p-1 rounded w-20 text-center"
           />
         </TableCell>
@@ -283,6 +400,9 @@ function EditableRow({ row, index, updateRow, addRow }) {
           <input
             value={row.discountPrice}
             onChange={(e) => updateRow(index, "discountPrice", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "discountPrice")}
+            data-row={index}
+            data-field="discountPrice"
             className="border p-1 rounded w-20 text-center"
           />
         </TableCell>
@@ -291,6 +411,9 @@ function EditableRow({ row, index, updateRow, addRow }) {
           <input
             value={row.landingPrice}
             onChange={(e) => updateRow(index, "landingPrice", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "landingPrice")}
+            data-row={index}
+            data-field="landingPrice"
             className="border p-1 rounded w-20 text-center"
           />
         </TableCell>
@@ -299,45 +422,99 @@ function EditableRow({ row, index, updateRow, addRow }) {
           <input
             value={row.inStock}
             onChange={(e) => updateRow(index, "inStock", e.target.value)}
-            className="border p-1 rounded w-20 text-center"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <input
-            value={row.sku}
-            onChange={(e) => updateRow(index, "sku", e.target.value)}
-            className="border p-1 rounded w-20 text-center"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <input
-            value={row.unitType}
-            onChange={(e) => updateRow(index, "unitType", e.target.value)}
-            className="border p-1 rounded w-20 text-center"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <input
-            value={row.weightUnit}
-            onChange={(e) => updateRow(index, "weightUnit", e.target.value)}
-            className="border p-1 rounded w-20 text-center"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <input
-            value={row.expiredAt}
-            onChange={(e) => updateRow(index, "expiredAt", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "inStock")}
+            data-row={index}
+            data-field="inStock"
             className="border p-1 rounded w-20 text-center"
           />
         </TableCell>
 
         <TableCell align="center">
-          <button
-            onClick={() => addRow(index)}
-            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500"
+          <input
+            value={row.sku}
+            onChange={(e) => updateRow(index, "sku", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "sku")}
+            data-row={index}
+            data-field="sku"
+            className="border p-1 rounded w-20 text-center"
+          />
+        </TableCell>
+
+        <TableCell align="center">
+          <select
+            value={row.unitType}
+            onChange={(e) => updateRow(index, "unitType", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "unitType")}
+            data-row={index}
+            data-field="unitType"
+            className="border p-1 rounded w-24 text-center  focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            +
-          </button>
+            <option value="" disabled>
+              Select
+            </option>
+            {["piece", "kg", "gram", "litre", "packet", "box"].map((unit) => (
+              <option key={unit} value={unit} className="text-black">
+                {unit}
+              </option>
+            ))}
+          </select>
+        </TableCell>
+
+        <TableCell align="center">
+          <select
+            value={row.weightUnit}
+            onChange={(e) => updateRow(index, "weightUnit", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "weightUnit")}
+            data-row={index}
+            data-field="weightUnit"
+            className="border p-1 rounded w-24 text-center  focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="" disabled>
+              Select
+            </option>
+            {["gram", "kg"].map((unit) => (
+              <option key={unit} value={unit} className="text-black">
+                {unit}
+              </option>
+            ))}
+          </select>
+        </TableCell>
+
+        <TableCell align="center">
+          <input
+            value={row.expiredAt}
+            onChange={(e) => updateRow(index, "expiredAt", e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, index, "expiredAt")}
+            data-row={index}
+            data-field="expiredAt"
+            className="border p-1 rounded w-20 text-center"
+          />
+        </TableCell>
+
+        <TableCell align="center">
+          {console.log(rowsLength)}
+          {row.mrp === "" &&
+          row.mrp === "" &&
+          row.discountPrice === "" &&
+          row.landingPrice === "" &&
+          row.productName === "" &&
+          row.sku === "" &&
+          row.unitType === "" &&
+          row.weightUnit === "" ? (
+            <button
+              disabled
+              className="px-3 py-1 bg-gray-400 cursor-not-allowed"
+            >
+              +
+            </button>
+          ) : (
+            <button
+              onClick={() => addRow(index)}
+              className="px-3 py-1 rounded text-white transition bg-blue-600 hover:bg-blue-500"
+            >
+              +
+            </button>
+          )}
         </TableCell>
       </TableRow>
 
@@ -383,6 +560,7 @@ function EditableRow({ row, index, updateRow, addRow }) {
           </Collapse>
         </TableCell>
       </TableRow>
+      {SnackbarComponent}
     </>
   );
 }
