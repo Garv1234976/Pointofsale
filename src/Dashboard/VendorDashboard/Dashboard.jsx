@@ -12,6 +12,8 @@ import { AppProvider } from "@toolpad/core/AppProvider";
 import { DashboardLayout, ThemeSwitcher } from "@toolpad/core/DashboardLayout";
 import { DemoProvider, useDemoRouter } from "@toolpad/core/internal";
 import { motion, AnimatePresence } from "framer-motion";
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import FormatListNumberedRtlIcon from '@mui/icons-material/FormatListNumberedRtl';
 import {
   Button,
   IconButton,
@@ -40,6 +42,7 @@ import StarIcon from "@mui/icons-material/Star";
 import CloseIcon from '@mui/icons-material/Close';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import CreateProductTable from "../../UI/Components/ui.VendorDashboard/Components/Product/CreateProduct/a-CreateProduct";
+import GetAllProducts from "../../UI/Components/ui.VendorDashboard/Components/Product/Allproducts/ShowAllProducts";
  const ratingData = [
     { stars: 5, percent: 70 },
     { stars: 4, percent: 17 },
@@ -181,7 +184,22 @@ const NAVIGATION = [
     segment: "product",
     title: "Product",
     icon: <ShoppingCartIcon />,
-    element: <CreateProductTable/>
+   
+    children:[
+      {
+        segment: 'add-products',
+        title: 'Add Product',
+        icon: <AddShoppingCartIcon/>,
+        element: <CreateProductTable/>
+      },
+      {
+        segment: 'all-product',
+        title: 'Product List',
+        icon: <FormatListNumberedRtlIcon/>,
+        element: <GetAllProducts/>
+      },
+
+    ]
   },
   {
     kind: "divider",
@@ -269,7 +287,7 @@ function DemoPageContent({ pathname }) {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 30 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeIn" }}
       >
         <Box
           sx={{
@@ -559,8 +577,12 @@ function DashboardLayoutBasic() {
     case "/dashboard":
       return <TopHero />;
 
-    case "/product":
+    case "/product/add-products":
       return <CreateProductTable />;
+
+      
+    case "/product/all-product":
+      return <GetAllProducts />;
 
     case "/reports/sales":
       return (
@@ -609,13 +631,13 @@ function DashboardLayoutBasic() {
               toolbarActions: ToolbarActions,
             }}
           >
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="popLayout">
               <motion.div
                 key={router.pathname}
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: 0 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                exit={{ opacity: 0, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeIn" }}
               >
                 {renderPage()}
               </motion.div>

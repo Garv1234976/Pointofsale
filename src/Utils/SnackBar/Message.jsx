@@ -31,7 +31,7 @@ export function useSnackbar() {
     <Snackbar
       open={snackbar.open}
       onClose={handleClose}
-      autoHideDuration={9000}
+      autoHideDuration={5000}
       slots={{ transition: SlideTransition }}
       key={"SlideTransition"}
     >

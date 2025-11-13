@@ -10,10 +10,12 @@ export default function VendorForm() {
 
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+
   const [formData, setFormData] = useState({
     email: "",
     phoneNumber: "",
     password: "",
+    confirmPassword: "",
     userName: "",
     fullName: "",
   });
@@ -42,11 +44,95 @@ export default function VendorForm() {
 
   const [storeLogoPreview, setStoreLogoPreview] = useState(null);
 
+  const [errors, setErrors] = useState({
+    phoneNumber: "",
+    password: "",
+    userName: "",
+    fullName: "",
+    confirmPassword: "",
+  });
+  const [passwordStrength, setPasswordStrength] = useState("");
+
+  const [login, setLogin] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [showPass, setShowPass] = useState(false);
+
+  const checkPasswordStrength = (password) => {
+    let strength = 0;
+
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength === 0) return "";
+    if (strength === 1) return "Weak";
+    if (strength === 2) return "Medium";
+    if (strength >= 3) return "Strong";
+  };
+
+  // const handleChange = (e) => {
+  //   setFormData({
+  //     ...formData,
+  //     [e.target.name]: e.target.value,
+  //   });
+  // };
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    let newErrors = { ...errors };
+
+    // PHONE NUMBER VALIDATION
+    if (name === "phoneNumber") {
+      if (!/^[0-9]*$/.test(value)) {
+        newErrors.phoneNumber = "Phone number must contain digits only";
+      } else if (value.length > 10) {
+        newErrors.phoneNumber = "Phone number cannot exceed 10 digits";
+      } else {
+        newErrors.phoneNumber = "";
+      }
+    }
+
+    // PASSWORD VALIDATION
+    if (name === "password") {
+      newErrors.password =
+        value.length < 8 ? "Password must be at least 8 characters" : "";
+      setPasswordStrength(checkPasswordStrength(value));
+
+      if (formData.confirmPassword && formData.confirmPassword !== value) {
+        newErrors.confirmPassword = "Passwords do not match";
+      } else {
+        newErrors.confirmPassword = "";
+      }
+    }
+
+    if (name === "confirmPassword") {
+      newErrors.confirmPassword =
+        value !== formData.password ? "Passwords do not match" : "";
+    }
+    // USERNAME VALIDATION (alphabets only)
+    if (name === "userName") {
+      if (!/^[A-Za-z]*$/.test(value)) {
+        newErrors.userName = "Username can contain alphabets only";
+      } else {
+        newErrors.userName = "";
+      }
+    }
+
+    // FULL NAME VALIDATION (alphabets + space)
+    if (name === "fullName") {
+      if (!/^[A-Za-z ]*$/.test(value)) {
+        newErrors.fullName = "Full name must contain alphabets only";
+      } else {
+        newErrors.fullName = "";
+      }
+    }
+
+    setErrors(newErrors);
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleFileChange = (e) => {
@@ -84,6 +170,40 @@ export default function VendorForm() {
       }));
       const imageUrl = URL.createObjectURL(file);
       setStoreLogoPreview(imageUrl);
+    }
+  };
+
+  const handleLoginChange = (e) => {
+    setLogin({ ...login, [e.target.name]: e.target.value });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await api.post(
+        "/api/vendor/login",
+        {
+          email: login.email,
+          password: login.password,
+        },
+        { headers: { "Content-Type": "application/json" }, skipCsrf: true }
+      );
+
+      if (res.status === 200) {
+        showSuccess("Login Successful!");
+
+        // Save token & vendor info
+        localStorage.setItem("vendorToken", res.data.token);
+        localStorage.setItem("vendorData", JSON.stringify(res.data.vendor));
+
+        // Redirect after login
+        // setTimeout(() => navigate("/vendordashboard"), 1200);
+        nextStep();
+      }
+    } catch (err) {
+      console.log(err);
+      showError(err.response?.data?.message || "Invalid login credentials");
     }
   };
 
@@ -155,11 +275,10 @@ export default function VendorForm() {
       if (res.status === 201) {
         console.log(res);
         showSuccess(res?.data?.message);
-        
-        setTimeout(() => {
-          navigate('/vendordashboard')
-        }, 2500);
 
+        setTimeout(() => {
+          navigate("/vendordashboard");
+        }, 2500);
       }
     } catch (err) {
       console.log(err);
@@ -240,6 +359,7 @@ export default function VendorForm() {
                       onChange={handleChange}
                       placeholder="hello@vendor.com"
                       className="input border-none text-xl"
+                      autoComplete="username"
                     />
                     <span className="text-lg font-semibold text-gray-400">
                       EMAIL
@@ -261,16 +381,40 @@ export default function VendorForm() {
                     <span className="text-red-700 font-bold text-2xl">*</span>
                   </div>
 
-                  <div className="flex justify-between items-center border-b-2 border-gray-500 mb-4">
+                  <div className="absolute -mt-3">
+                    {errors.phoneNumber && (
+                      <div className="bg-gray-200 px-3 py-2 rounded-lg">
+                        <p className="text-red-600 text-sm">
+                          {errors.phoneNumber}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center border-b-2 border-gray-500 mb-1">
                     <input
                       type="password"
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="password(#2@)er"
-                      className="input border-none text-xl"
+                      className="input border-none text-xl max-w-80"
+                      autoComplete="new-password"
                     />
                     <div className="flex items-center gap-5">
+                      {passwordStrength && (
+                        <p
+                          className={`text-sm  ${
+                            passwordStrength === "Weak"
+                              ? "text-red-500 bg-amber-200 px-2 text-center rounded-lg"
+                              : passwordStrength === "Medium"
+                                ? "text-black bg-amber-500 px-2 rounded-lg"
+                                : "text-green-600 px-2 rounded-lg bg-green-300"
+                          }`}
+                        >
+                          Password Strength: <b>{passwordStrength}</b>
+                        </p>
+                      )}
                       <i className="fa-solid fa-eye-slash text-gray-500"></i>
                       <div className="flex items-center">
                         <span className="text-lg font-semibold text-gray-800">
@@ -283,10 +427,23 @@ export default function VendorForm() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center border-b-2 border-gray-500">
+                  {/* Password Strength Indicator */}
+
+                  <div className="absolute">
+                    {errors.password && (
+                      <div className="bg-gray-200 px-3 py-2 rounded-lg">
+                        <p className="text-red-600 text-sm">
+                          {errors.password}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-between items-center border-b-2 border-gray-500">
                     <input
                       type="password"
                       name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
                       placeholder="password(#2@)er"
                       className="input border-none text-xl"
                     />
@@ -298,6 +455,15 @@ export default function VendorForm() {
                       <span className="text-red-700 font-bold text-2xl">*</span>
                     </div>
                   </div>
+                </div>
+                <div className="absolute">
+                  {errors.confirmPassword && (
+                    <div className="bg-gray-200 px-3 py-2 rounded-lg">
+                      <p className="text-red-600 text-sm">
+                        {errors.confirmPassword}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Other Details */}
@@ -314,7 +480,15 @@ export default function VendorForm() {
                       *
                     </span>
                   </div>
-
+                  {errors.userName && (
+                    <div className="absolute mt-12">
+                      <div className="bg-gray-200 px-3 py-2 rounded-lg">
+                        <p className="text-red-600 text-sm">
+                          {errors.userName}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className="border-b-2 border-gray-500">
                     <input
                       name="fullName"
@@ -324,6 +498,15 @@ export default function VendorForm() {
                       className="input border-none capitalize text-xl "
                     />
                   </div>
+                  {errors.fullName && (
+                    <div className="absolute mt-12 right-5">
+                      <div className="bg-gray-200 px-3 py-2 rounded-lg">
+                        <p className="text-red-600 text-sm">
+                          {errors.fullName}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center py-10">
@@ -352,6 +535,90 @@ export default function VendorForm() {
           )}
 
           {step === 2 && (
+            <motion.div
+              key="preview"
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.1 }}
+              style={{ marginTop: "100px", paddingInline: "2.5rem" }}
+            >
+              <h3 className="text-2xl text-center font-semibold mb-6 text-gray-800">
+                Login to your Vendor Account
+              </h3>
+
+              <div className="w-full flex justify-center items-center">
+                <form
+                  onSubmit={handleLogin}
+                  className="bg-white p-6 rounded-xl shadow-md space-y-6 w-[70%]"
+                >
+                  {/* Email */}
+                  <div className="flex flex-col">
+                    <label className="text-gray-600 font-medium mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={login.email}
+                      onChange={handleLoginChange}
+                      placeholder="hello@vendor.com"
+                      autoComplete="username"
+                      className="border rounded-lg px-3 py-2 text-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                      required
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="flex flex-col relative">
+                    <label className="text-gray-600 font-medium mb-1">
+                      Password
+                    </label>
+
+                    <input
+                      type={showPass ? "text" : "password"}
+                      name="password"
+                      value={login.password}
+                      onChange={handleLoginChange}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      className="border rounded-lg px-3 py-2 text-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                      required
+                    />
+
+                    <i
+                      className={`fa-solid ${
+                        showPass ? "fa-eye" : "fa-eye-slash"
+                      } absolute right-3 top-11 text-gray-500 cursor-pointer`}
+                      onClick={() => setShowPass(!showPass)}
+                    ></i>
+                  </div>
+
+                  {/* Login Button */}
+                  <button
+                    type="submit"
+                    className="bg-[#07575b] hover:bg-gray-200 hover:text-black text-white w-full py-2 rounded-lg text-lg font-semibold transition"
+                  >
+                    Login
+                  </button>
+
+                  <p className="text-center text-gray-600 text-sm mt-2">
+                    Don't have an account?
+                    <span
+                      className="text-blue-600 font-semibold cursor-pointer"
+                      onClick={() => setStep(1)}
+                    >
+                      {" "}
+                      Create Vendor Profile
+                    </span>
+                  </p>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
             <motion.div
               key="step2"
               variants={slideVariants}
