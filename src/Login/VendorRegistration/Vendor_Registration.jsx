@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from "motion/react";
 import Poster from "/pos.png";
 import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "../../Utils/SnackBar/Message";
+
 // Api router
 import api from "../../Services/SalesPulse-backend";
+import { useAuth } from "../../Contexts/Global/VendorContext";
 export default function VendorForm() {
   const { showSuccess, showError, SnackbarComponent } = useSnackbar();
-
+  const { vendor } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
@@ -25,7 +27,7 @@ export default function VendorForm() {
     storeCategory: "",
     companyName: "",
     gstNumber: "",
-    vendorId: "6911be427ee3036c28901e93",
+    vendorId: vendor?._id,
 
     storeLogo: null,
 
@@ -59,6 +61,9 @@ export default function VendorForm() {
   });
 
   const [showPass, setShowPass] = useState(false);
+  const [showPassConfirm, setShowPassConfirm] = useState(false);
+
+
 
   const checkPasswordStrength = (password) => {
     let strength = 0;
@@ -179,8 +184,8 @@ export default function VendorForm() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
+      
       const res = await api.post(
         "/api/vendor/login",
         {
@@ -302,7 +307,11 @@ export default function VendorForm() {
         <div className="fixed h-[4rem] bg-[#07575b] w-full px-10 py-2">
           <div>
             <div className="text-3xl font-bold text-left mb-2 text-white">
-              <h2 className="">Vendor Registration_</h2>
+              <h2 className="">
+                {step === 1 && "Vendor Register_"}
+                {step === 2 && "Vendor Login_"}
+                {step === 3 && "Create Store_"}
+              </h2>
             </div>
             <hr className="border-b-2 w-20 text-gray-400" />
           </div>
@@ -316,8 +325,9 @@ export default function VendorForm() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.1 }}
-              className="py-2"
-              style={{ marginTop: "90px", paddingInline: "2.5rem" }}
+              className="mt-13 sm:mt-[90px] py-2"
+              // 50
+              style={{  paddingInline: "2.5rem" }}
             >
               <h3 className="text-2xl py-5">Basic Information</h3>
               <form onSubmit={handleSubmit} encType="multipart/form-data">
@@ -358,10 +368,10 @@ export default function VendorForm() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="hello@vendor.com"
-                      className="input border-none text-xl"
+                      className="input border-none text-[1rem] sm:text-xl"
                       autoComplete="username"
                     />
-                    <span className="text-lg font-semibold text-gray-400">
+                    <span className="text-[1rem] sm:text-lg font-semibold text-gray-400">
                       EMAIL
                     </span>
                     <span className="text-red-700 font-bold text-2xl">*</span>
@@ -373,9 +383,9 @@ export default function VendorForm() {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       placeholder="+91 00000-00000"
-                      className="input border-none text-xl"
+                      className="input border-none text-[1rem] sm:text-xl"
                     />
-                    <span className="w-50 text-right text-lg font-semibold text-gray-400">
+                    <span className="w-50 text-right text-[0.9rem]  sm:text-lg font-semibold text-gray-400">
                       PHONE NUMBER
                     </span>
                     <span className="text-red-700 font-bold text-2xl">*</span>
@@ -393,31 +403,36 @@ export default function VendorForm() {
 
                   <div className="flex justify-between items-center border-b-2 border-gray-500 mb-1">
                     <input
-                      type="password"
+                      type={showPass ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="password(#2@)er"
-                      className="input border-none text-xl max-w-80"
+                      className="input border-none text-[1rem] sm:text-xl max-w-80"
                       autoComplete="new-password"
                     />
                     <div className="flex items-center gap-5">
                       {passwordStrength && (
                         <p
-                          className={`text-sm  ${
+                          className={`absolute left-8 mt-16 w-[12rem] sm:w-full sm:mt-0 sm:static text-[0.8rem] sm:text-sm  ${
                             passwordStrength === "Weak"
                               ? "text-red-500 bg-amber-200 px-2 text-center rounded-lg"
                               : passwordStrength === "Medium"
                                 ? "text-black bg-amber-500 px-2 rounded-lg"
-                                : "text-green-600 px-2 rounded-lg bg-green-300"
+                                : "text-green-800 px-2 rounded-lg bg-green-200"
                           }`}
                         >
                           Password Strength: <b>{passwordStrength}</b>
                         </p>
                       )}
-                      <i className="fa-solid fa-eye-slash text-gray-500"></i>
+                      <i
+                      className={`fa-solid ${
+                        showPass ? "fa-eye" : "fa-eye-slash"
+                      }  text-gray-500 cursor-pointer`}
+                      onClick={() => setShowPass(!showPass)}
+                    ></i>
                       <div className="flex items-center">
-                        <span className="text-lg font-semibold text-gray-800">
+                        <span className="text-[0.9rem] sm:text-lg font-semibold text-gray-800">
                           PASSWORD
                         </span>
                         <span className="text-red-700 font-bold text-2xl">
@@ -440,16 +455,21 @@ export default function VendorForm() {
                   </div>
                   <div className="mt-4 flex justify-between items-center border-b-2 border-gray-500">
                     <input
-                      type="password"
+                      type={showPassConfirm ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="password(#2@)er"
-                      className="input border-none text-xl"
+                      className="input border-none text-[1rem] sm:text-xl"
                     />
                     <div className="flex place-items-center ">
-                      <i className="fa-solid fa-eye-slash text-gray-500"></i>
-                      <span className="w-50 text-right text-lg font-semibold text-gray-800">
+                      <i
+                      className={`fa-solid ${
+                        showPassConfirm ? "fa-eye" : "fa-eye-slash"
+                      }  text-gray-500 cursor-pointer`}
+                      onClick={() => setShowPassConfirm(!showPassConfirm)}
+                    ></i>
+                      <span className="w-25 sm:w-50  text-right text-[0.9rem]  sm:text-lg font-semibold text-gray-800">
                         CONFIRM PASSWORD
                       </span>
                       <span className="text-red-700 font-bold text-2xl">*</span>
@@ -467,14 +487,14 @@ export default function VendorForm() {
                 </div>
 
                 {/* Other Details */}
-                <div className="mt-5 flex justify-between">
+                <div className="mt-5 block sm:flex justify-between">
                   <div className="border-b-2 border-gray-500 flex">
                     <input
                       name="userName"
                       value={formData.userName}
                       onChange={handleChange}
                       placeholder="username"
-                      className="input border-none capitalize text-xl "
+                      className="input border-none capitalize text-[1rem] sm:text-xl "
                     />
                     <span className="text-red-700 font-bold text-2xl  w-[150%]">
                       *
@@ -495,7 +515,7 @@ export default function VendorForm() {
                       value={formData.fullName}
                       onChange={handleChange}
                       placeholder="fullname"
-                      className="input border-none capitalize text-xl "
+                      className="input border-none capitalize text-[1rem] sm:text-xl "
                     />
                   </div>
                   {errors.fullName && (
@@ -548,10 +568,10 @@ export default function VendorForm() {
                 Login to your Vendor Account
               </h3>
 
-              <div className="w-full flex justify-center items-center">
+              <div className="w-full flex justify-center items-center  h-[50vh] rounded-lg">
                 <form
                   onSubmit={handleLogin}
-                  className="bg-white p-6 rounded-xl shadow-md space-y-6 w-[70%]"
+                  className="bg-white p-6 rounded-xl shadow-md space-y-6 sm:w-full md:w-[70%]"
                 >
                   {/* Email */}
                   <div className="flex flex-col">
@@ -627,12 +647,13 @@ export default function VendorForm() {
               exit="exit"
               transition={{ duration: 0.1 }}
               //  style={{marginTop: '100px'}}
-              style={{ marginTop: "100px", paddingInline: "2.5rem" }}
+              style={{ marginTop: "100px", paddingInline: "2.5rem",  }}
+              className="bg-gray-100"
             >
               <div className="text-gray-800  ">
                 <div className="flex items-start gap-3">
                   <div className=" bg-gray-200 px-3 py-1 rounded">
-                    <p className="mt-1 text-sm leading-relaxed underline font-semibold">
+                    <p className="mt-1 text-xs md:text-sm leading-relaxed underline font-semibold">
                       <span className="font-bold text-red-500">*Remember </span>
                       Please ensure all your business verification details and
                       documents are accurate and complete. Once you submit the
@@ -642,45 +663,14 @@ export default function VendorForm() {
                 </div>
 
                 <div className="mt-4 flex items-start gap-3">
-                  <p className="text-sm font-semibold">
+                  <p className="text-xs md:text-sm font-semibold">
                     Verification Time:{" "}
                     <span className="font-medium">Within 4 hours</span>, our
                     team will verify your business information.
                   </p>
                 </div>
 
-                {/* <div className="mt-9 justify-self-center flex items-start gap-3">
-                  <div className="bg-gray-200 p-1 rounded-md">
-                    <h4 class="text-sm font-semibold">After approval</h4>
-                    <ul class="mt-2 space-y-2 text-sm leading-snug list-inside">
-                      <li class="flex items-start gap-2">
-                        <span class="mt-0.5">🛍️</span>
-                        <span>List your products on the POS platform</span>
-                      </li>
-                      <li class="flex items-start gap-2">
-                        <span class="mt-0.5">📊</span>
-                        <span>
-                          Access your vendor dashboard for orders, stock, and
-                          earnings
-                        </span>
-                      </li>
-                      <li class="flex items-start gap-2">
-                        <span class="mt-0.5">💼</span>
-                        <span>
-                          Start selling directly to users through our POS system
-                        </span>
-                      </li>
-                    </ul>
-
-                    <p class="mt-3 text-xs text-gray-600">
-                      You’ll receive a confirmation notification once your
-                      vendor account is active.
-                    </p>
-                    <p class="mt-2 text-xs font-medium text-gray-700">
-                      — POS Admin Team
-                    </p>
-                  </div>
-                </div> */}
+                
               </div>
               <h3 className="text-base font-semibold mt-5 mb-3 text-gray-700 flex items-center gap-2">
                 Store Details
@@ -688,7 +678,8 @@ export default function VendorForm() {
 
               <form onSubmit={handleStoreSubmit} encType="multipart/form-data">
                 {/* Store Logo */}
-                <div className="">
+                <div className="h-[80vh] overflow-y-auto pr-2 md:max-h-none md:overflow-visible">
+                  <div className="">
                   {storeLogoPreview && (
                     <div className="mt-3 flex justify-center">
                       <img
@@ -720,9 +711,6 @@ export default function VendorForm() {
                       placeholder="Store Name"
                       className="input w-full"
                     />
-                    <span className="absolute right-2 top-2 text-red-700 font-bold text-lg">
-                      *
-                    </span>
                   </div>
 
                   {/* Store Category */}
@@ -775,7 +763,7 @@ export default function VendorForm() {
                       Store Address
                     </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                       <input
                         name="localArea"
                         value={storeData.storeAddress[0].localArea}
@@ -812,22 +800,27 @@ export default function VendorForm() {
                 </div>
 
                 {/* Submit Buttons */}
-                <div className="flex justify-end mt-6">
-                  {/* <button
-                    type="button"
-                    onClick={prevStep}
-                    className="btn-secondary"
-                  >
-                    Back
-                  </button> */}
-
-                  <button
-                    type="submit"
-                    className="bg-[#07575b] hover:bg-gray-300 hover:text-black px-10 py-2 text-white font-semibold text-xl rounded cursor-pointer"
-                  >
-                    Register
-                  </button>
+                <div
+  className="
+    w-full 
+    flex justify-center 
+    
+    md:justify-end
+    
+    fixed bottom-0 left-0 z-10 
+    md:static md:bg-transparent
+    p-3
+  "
+>
+  <button
+    type="submit"
+    className="bg-[#07575b] hover:bg-gray-300 hover:text-black px-10 py-2 text-white font-semibold text-xl rounded cursor-pointer"
+  >
+    Register
+  </button>
+</div>
                 </div>
+
               </form>
             </motion.div>
           )}

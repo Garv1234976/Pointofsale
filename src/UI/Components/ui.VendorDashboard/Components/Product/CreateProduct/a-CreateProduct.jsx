@@ -17,6 +17,11 @@ import { FormControl, InputLabel, NativeSelect } from "@mui/material";
 import api from "../../../../../../Services/SalesPulse-backend";
 import { useSnackbar } from "../../../../../../Utils/SnackBar/Message";
 import CustomSnackbar from "../../../../../../Utils/SnackBar/Product-Snackbar";
+import { useAuth } from "../../../../../../Contexts/Global/VendorContext";
+
+// exclude_keys from vendorObject
+const EXCLUDE_KEYS = ["image", "vendorId"];
+
 
 function ImportFromCsvORExcel({ onFileSelect }) {
   const [importType, setImportType] = useState("excel");
@@ -71,6 +76,7 @@ function ImportFromCsvORExcel({ onFileSelect }) {
 }
 
 export default function VendorProductTable() {
+  const { vendor } = useAuth();
   const { showSuccess, showError, SnackbarComponent } = useSnackbar();
   const [fileType, setFileType] = useState("");
   const emptyRow = {
@@ -122,7 +128,7 @@ export default function VendorProductTable() {
     rows.forEach((row, index) => {
       formData.append(
         `products[${index}][vendorId]`,
-        "6911be427ee3036c28901e93"
+        vendor?._id
       );
       formData.append(`products[${index}][mrp]`, row.mrp);
       formData.append(`products[${index}][discountPrice]`, row.discountPrice);
@@ -167,7 +173,7 @@ export default function VendorProductTable() {
     }
 
     const formData = new FormData();
-    formData.append("vendorId", "6911be427ee3036c28901e93"); //  your vendorId
+    formData.append("vendorId", vendor?._id); //  your vendorId
     formData.append(type === "csv" ? "csvFile" : "excelFile", file);
 
     try {
@@ -316,15 +322,26 @@ function EditableRow({ row, index, updateRow, addRow, rowsLength }) {
         </TableCell>
 
         <TableCell>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 w-45 justify-items-center md:w-full md:grid-cols-2 gap-2">
             <img
               src={imgSrc}
               alt="preview"
               className="w-10 h-10 object-cover rounded border-b-2 border-b-green-500 "
             />
+            <span className="flex items-center text-xs cursor-pointer  font-semibold"
+            onClick={() => document.getElementById('fileInput').click()}
+            >
+              <span className="bg-gray-200  px-1 py-1 rounded-lg flex gap-2 items-center">
+              <i className="fa-solid fa-photo-film text-blue-400"></i>
+              <span className="text-black">{imgSrc ? "Upload Image" : "Upload Product Image"}</span>
+
+              </span>
+            </span>
             <input
+              id="fileInput"
               type="file"
               accept="image/*"
+              placeholder="upload"
               onChange={(e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -369,7 +386,7 @@ function EditableRow({ row, index, updateRow, addRow, rowsLength }) {
                 // ✅ Passed validation — update the state
                 updateRow(index, "image", file);
               }}
-              className="border p-1 rounded w-full"
+              className="hidden"
             />
           </div>
         </TableCell>
@@ -482,6 +499,7 @@ function EditableRow({ row, index, updateRow, addRow, rowsLength }) {
 
         <TableCell align="center">
           <input
+          type="date"
             value={row.expiredAt}
             onChange={(e) => updateRow(index, "expiredAt", e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, index, "expiredAt")}
@@ -522,22 +540,22 @@ function EditableRow({ row, index, updateRow, addRow, rowsLength }) {
         <TableCell colSpan={12} style={{ paddingBottom: 0, paddingTop: 0 }}>
           <Collapse in={open}>
             <Box className="w-full flex justify-end ">
-              <Box margin={2} width={"70%"}>
+              <Box margin={2} width={"100%"}>
                 <div className="text-lg font-semibold mb-3">
                   Product Summary
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6 p-4 bg-white rounded-lg">
-                  <div className="w-full md:w-4/3 flex justify-start">
+                  <div className="w-full  flex justify-start">
                     <img
                       src={imgSrc}
                       alt="preview"
                       className="w-25 h-25 object-cover rounded bg-gray-100 px-1.5 py-1.5"
                     />
                   </div>
-                  <div className="w-full md:w-12/2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="w-full md:w-12/2 grid grid-cols-5 md:grid-cols-4 gap-4">
                     {Object.entries(row)
-                      .filter(([k]) => k !== "image")
+                      .filter(([k]) => !EXCLUDE_KEYS.includes(k))
                       .map(([key, val]) => (
                         <div
                           key={key}

@@ -11,10 +11,14 @@ import {
   TableRow,
 } from "@mui/material";
 
+import { useAuth } from "../../../../../../Contexts/Global/VendorContext";
 const GetAllProducts = () => {
+  const {vendor} = useAuth();
+  // console.log(vendor?._id)
   const { showSuccess, showError, SnackbarComponent } = useSnackbar();
   const [products, setAllproducts] = useState([]);
 
+ 
   const getProducts = async () => {
     const res = await api.get("/api/product/getAllProducts", {
       headers: { "Content-Type": "application/json" },
@@ -26,7 +30,12 @@ const GetAllProducts = () => {
       setAllproducts(res.data.products);
     }
   };
+
+
+
+
   useEffect(() => {
+    
     getProducts();
   }, []);
   return (

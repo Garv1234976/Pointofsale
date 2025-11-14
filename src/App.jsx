@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import VendorForm from "./Login/VendorRegistration/Vendor_Registration"
 import DashboardLayoutBasic from "./Dashboard/VendorDashboard/Dashboard"
+import ProtectedRoute from "./Routes/ProtectedRoute"
 
 function App() {
 
@@ -9,7 +10,11 @@ function App() {
       <BrowserRouter>
       <Routes>
         <Route path="/" element={<VendorForm/>}/>
-        <Route path="/vendordashboard" element={<DashboardLayoutBasic/>}/>
+        <Route path="/vendordashboard" element={
+          <ProtectedRoute>
+            <DashboardLayoutBasic/>
+          </ProtectedRoute>
+          }/>
       </Routes>
       </BrowserRouter>
     </>
