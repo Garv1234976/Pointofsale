@@ -14,6 +14,7 @@ import { DemoProvider, useDemoRouter } from "@toolpad/core/internal";
 import { motion, AnimatePresence } from "framer-motion";
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import FormatListNumberedRtlIcon from '@mui/icons-material/FormatListNumberedRtl';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import {
   Button,
   IconButton,
@@ -43,6 +44,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import CreateProductTable from "../../UI/Components/ui.VendorDashboard/Components/Product/CreateProduct/a-CreateProduct";
 import GetAllProducts from "../../UI/Components/ui.VendorDashboard/Components/Product/Allproducts/ShowAllProducts";
+import { useAuth } from "../../Contexts/Global/VendorContext";
+import AddBusinessIcon from '@mui/icons-material/AddBusiness';
+import AddVendorStore from "../../UI/Components/ui.VendorDashboard/Components/Product/AddStore/AddVendorStore";
+import UpdateVendorStore from "../../UI/Components/ui.VendorDashboard/Components/Product/UpdateProduct/UpdateVendorStore";
+import {Navigate} from 'react-router-dom';
+
  const ratingData = [
     { stars: 5, percent: 70 },
     { stars: 4, percent: 17 },
@@ -169,68 +176,8 @@ function NavigationSkeleton() {
   );
 }
 
-const NAVIGATION = [
-  {
-    kind: "header",
-    title: "Main items",
-  },
-  {
-    segment: "dashboard",
-    title: "Dashboard",
-    icon: <DashboardIcon />,
-    element: <TopHero />,
-  },
-  {
-    segment: "product",
-    title: "Product",
-    icon: <ShoppingCartIcon />,
-   
-    children:[
-      {
-        segment: 'add-products',
-        title: 'Add Product',
-        icon: <AddShoppingCartIcon/>,
-        element: <CreateProductTable/>
-      },
-      {
-        segment: 'all-product',
-        title: 'Product List',
-        icon: <FormatListNumberedRtlIcon/>,
-        element: <GetAllProducts/>
-      },
 
-    ]
-  },
-  {
-    kind: "divider",
-  },
-  {
-    kind: "header",
-    title: "Analytics",
-  },
-  {
-    segment: "reports",
-    title: "Reports",
-    icon: <BarChartIcon />,
-    children: [
-      {
-        segment: "sales",
-        title: "Sales",
-        icon: <DescriptionIcon />,
-      },
-      {
-        segment: "traffic",
-        title: "Traffic",
-        icon: <DescriptionIcon />,
-      },
-    ],
-  },
-  {
-    segment: "integrations",
-    title: "Integrations",
-    icon: <LayersIcon />,
-  },
-];
+
 
 // const demoTheme = createTheme({
 //   cssVariables: {
@@ -354,6 +301,86 @@ function getLabelText(value) {
 // ToolbarActions
 
 function DashboardLayoutBasic() {
+  const { vendor, logout } = useAuth();
+  const hasStore = !!vendor?.storeId;
+
+  const NAVIGATION = [
+  {
+    kind: "header",
+    title: "Main items",
+  },
+  {
+    segment: "dashboard",
+    title: "Dashboard",
+    icon: <DashboardIcon />,
+    element: <TopHero />,
+  },
+  {
+    segment: "product",
+    title: "Product",
+    icon: <ShoppingCartIcon />,
+   
+    children: [
+  hasStore && {
+    segment: 'my-Store',
+    title: 'My Store',
+    icon: <StorefrontIcon />,
+    element: <UpdateVendorStore />
+  },
+
+  !hasStore && {
+    segment: 'create-Store',
+    title: 'Create Store',
+    icon: <AddBusinessIcon />,
+    element: <AddVendorStore />
+  },
+
+  {
+    segment: 'add-products',
+    title: 'Add Product',
+    icon: <AddShoppingCartIcon />,
+    element: <CreateProductTable />
+  },
+  {
+    segment: 'all-product',
+    title: 'Product List',
+    icon: <FormatListNumberedRtlIcon />,
+    element: <GetAllProducts />
+  }
+].filter(Boolean)
+
+  },
+  {
+    kind: "divider",
+  },
+  {
+    kind: "header",
+    title: "Analytics",
+  },
+  {
+    segment: "reports",
+    title: "Reports",
+    icon: <BarChartIcon />,
+    children: [
+      {
+        segment: "sales",
+        title: "Sales",
+        icon: <DescriptionIcon />,
+      },
+      {
+        segment: "traffic",
+        title: "Traffic",
+        icon: <DescriptionIcon />,
+      },
+    ],
+  },
+  {
+    segment: "integrations",
+    title: "Integrations",
+    icon: <LayersIcon />,
+  },
+];
+  
   const router = useDemoRouter("/dashboard");
   const [loading, setLoading] = useState(true);
   const [navData, setNavData] = useState([]);
@@ -555,7 +582,7 @@ function DashboardLayoutBasic() {
         });
       },
       signOut: () => {
-        setSession(null);
+        logout();
       },
     };
   }, []);
@@ -572,17 +599,62 @@ function DashboardLayoutBasic() {
 
 
   /** Router cases */
-  const renderPage = () => {
+const renderPage = () => {
+  const { vendor, loading } = useAuth();
+
+  
+  if (loading) {
+    return (
+      <Typography variant="h6" sx={{ mt: 3, textAlign: "center" }}>
+        Loading...
+      </Typography>
+    );
+  }
+
+  
+  const hasStore = vendor?.storeId ? true : false;
+
+  console.log("STORE EXISTS? →", hasStore);
+
   switch (router.pathname) {
     case "/dashboard":
       return <TopHero />;
 
-    case "/product/add-products":
-      return <CreateProductTable />;
+    case "/product/create-Store":
+      // If store exists → redirect to my-store
+      return hasStore ? (
+        <Navigate to="/product/my-Store" replace />
+      ) : (
+        <AddVendorStore />
+      );
 
-      
+    case "/product/my-Store":
+      // Only show "My Store" if store exists
+      return hasStore ? (
+        <UpdateVendorStore />
+      ) : (
+        <Typography variant="h6" sx={{ mt: 3, textAlign: "center" }}>
+          You need to create a store first
+        </Typography>
+      );
+
+    case "/product/add-products":
+      return hasStore ? (
+        <CreateProductTable />
+      ) : (
+        <Typography variant="h6" sx={{ mt: 3, textAlign: "center" }}>
+          You need to create a store first
+        </Typography>
+      );
+
     case "/product/all-product":
-      return <GetAllProducts />;
+      return hasStore ? (
+        <GetAllProducts />
+      ) : (
+        <Typography variant="h6" sx={{ mt: 3, textAlign: "center" }}>
+          You need to create a store first
+        </Typography>
+      );
 
     case "/reports/sales":
       return (
@@ -613,6 +685,7 @@ function DashboardLayoutBasic() {
       );
   }
 };
+
   return (
     <DemoProvider>
       {loading ? (

@@ -215,13 +215,13 @@ export default function VendorForm() {
   const nextStep = () => setStep((prev) => prev + 1);
   const prevStep = () => setStep((prev) => prev - 1);
 
-  useEffect(() => {
-    const completed = localStorage.getItem("vendorProfileCompleted") === "true";
+  // useEffect(() => {
+  //   const completed = localStorage.getItem("vendorProfileCompleted") === "true";
 
-    if (completed) {
-      setStep(2);
-    }
-  }, []);
+  //   if (completed) {
+  //     setStep(2);
+  //   }
+  // }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -250,7 +250,10 @@ export default function VendorForm() {
         console.log(res);
         showSuccess(res.data?.message);
         localStorage.setItem("vendorProfileCompleted", "true");
-        nextStep();
+        setTimeout(() => {
+          navigate("/vendordashboard");
+        }, 2500);
+        // nextStep();
       }
     } catch (err) {
       console.log(err);
@@ -547,7 +550,7 @@ export default function VendorForm() {
                     type="submit"
                     className="bg-[#07575b] hover:bg-gray-300 hover:text-black px-10 py-2 text-white font-semibold text-xl rounded cursor-pointer"
                   >
-                    Next
+                    Submit
                   </button>
                 </div>
               </form>
